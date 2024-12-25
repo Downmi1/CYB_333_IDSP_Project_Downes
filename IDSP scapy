@@ -1,0 +1,44 @@
+from scapy.all import IP, TCP, Ether, PacketList
+
+# Define a list of suspicious IPs
+SUSPICIOUS_IPS = ["192.168.1.100", "10.0.0.50"]  # Example IPs
+
+# Generate dummy packets
+def generate_packets():
+    packets = PacketList()
+
+    # Normal packet
+    packets.append(IP(src="192.168.1.1", dst="192.168.1.2") / TCP(flags="S"))
+
+    # Suspicious IP packet
+    packets.append(IP(src="192.168.1.100", dst="192.168.1.2") / TCP(flags="A"))
+
+    # Packet with SYN+FIN (suspicious flag)
+    packets.append(IP(src="192.168.1.3", dst="192.168.1.4") / TCP(flags=0x03))
+
+    return packets
+
+# Analyze packets
+def analyze_packets(packets):
+    for packet in packets:
+        if packet.haslayer(IP):
+            ip_layer = packet[IP]
+            src_ip = ip_layer.src
+            dst_ip = ip_layer.dst
+
+            # Check if the source IP matches known suspicious IPs
+            if src_ip in SUSPICIOUS_IPS:
+                print(f"ALERT: Suspicious packet detected from {src_ip} to {dst_ip}")
+
+            # Check for suspicious TCP flags (e.g., SYN+FIN is uncommon)
+            if packet.haslayer(TCP):
+                tcp_layer = packet[TCP]
+                if tcp_layer.flags == 0x03:  # SYN + FIN flag
+                    print(f"ALERT: Suspicious TCP flags detected from {src_ip} to {dst_ip}")
+
+# Generate and analyze packets
+packets = generate_packets()
+print("Generated packets:")
+print(packets.summary())
+print("\nAnalyzing packets:")
+analyze_packets(packets)
